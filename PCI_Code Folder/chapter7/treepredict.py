@@ -1,3 +1,4 @@
+# 結果欄位必需放在最後一欄
 my_data=[['slashdot','USA','yes',18,'None'],
         ['google','France','yes',23,'Premium'],
         ['digg','USA','yes',24,'Basic'],
@@ -15,7 +16,13 @@ my_data=[['slashdot','USA','yes',18,'None'],
         ['google','UK','yes',18,'Basic'],
         ['kiwitobes','France','yes',19,'Basic']]
 
+
+
 class decisionnode:
+    #col:待檢驗的條件所對應的列索引值
+    #value:對應予為了使結果為true，當前列必須匹配的索引值
+    #tb、fb:decisionnode類別，對應結果分別為true或false時的結點。
+    #result:保存的是針對予當前分支的結果，是一個字典。除葉結點外，在其他節點上該值都為None
   def __init__(self,col=-1,value=None,results=None,tb=None,fb=None):
     self.col=col
     self.value=value
@@ -25,6 +32,10 @@ class decisionnode:
 
 # Divides a set on a specific column. Can handle numeric
 # or nominal values
+# 根據基準值進行分類，可以為數值或字串
+# row:要分類的資料集
+# column:作為分類基準的欄位
+# value:基準值
 def divideset(rows,column,value):
    # Make a function that tells us if a row is in 
    # the first group (true) or the second group (false)
@@ -42,11 +53,15 @@ def divideset(rows,column,value):
 
 # Create counts of possible results (the last column of 
 # each row is the result)
-def uniquecounts(rows):
-   results={}
+# 所有可能的結果進行計數(預設結果在最後一列)
+# column:記錄結果的欄位
+def uniquecounts(rows,column=None):
+   results={}   
    for row in rows:
       # The result is the last column
-      r=row[len(row)-1]
+      if(column == None):
+          column = len(row)-1
+      r=row[column]
       if r not in results: results[r]=0
       results[r]+=1
    return results
@@ -84,16 +99,16 @@ def entropy(rows):
 def printtree(tree,indent=''):
    # Is this a leaf node?
    if tree.results!=None:
-      print str(tree.results)
+      print(str(tree.results))
    else:
       # Print the criteria
-      print str(tree.col)+':'+str(tree.value)+'? '
+      print(str(tree.col)+':'+str(tree.value)+'? ')
 
       # Print the branches
-      print indent+'T->',
-      printtree(tree.tb,indent+'  ')
-      print indent+'F->',
-      printtree(tree.fb,indent+'  ')
+      print( indent+'T->',
+      printtree(tree.tb,indent+'  '))
+      print (indent+'F->',
+      printtree(tree.fb,indent+'  '))
 
 
 def getwidth(tree):
@@ -107,6 +122,7 @@ def getdepth(tree):
 
 from PIL import Image,ImageDraw
 
+#圖形顯示方式
 def drawtree(tree,jpeg='tree.jpg'):
   w=getwidth(tree)*100
   h=getdepth(tree)*100+120
@@ -141,7 +157,7 @@ def drawnode(draw,tree,x,y):
     txt=' \n'.join(['%s:%d'%v for v in tree.results.items()])
     draw.text((x-20,y),txt,(0,0,0))
 
-
+# 使用決策樹對數據進行預測
 def classify(observation,tree):
   if tree.results!=None:
     return tree.results
@@ -156,6 +172,11 @@ def classify(observation,tree):
       else: branch=tree.fb
     return classify(observation,branch)
 
+# 剪枝：
+# 對具有相同父節點的一組節點進行檢查，判斷如果將其合併
+# 熵的增加量是否會小於某個指定的閂值。
+# 若為真，則這些葉節點會被合併為成單一個節點。
+# 合併后的新節點包含所有可能的結果值。
 def prune(tree,mingain):
   # If the branches aren't leaves, then prune them
   if tree.tb.results==None:
@@ -212,6 +233,7 @@ def variance(rows):
   variance=sum([(d-mean)**2 for d in data])/len(data)
   return variance
 
+# 生成決策樹
 def buildtree(rows,scoref=entropy):
   if len(rows)==0: return decisionnode()
   current_score=scoref(rows)

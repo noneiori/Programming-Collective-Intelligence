@@ -1,5 +1,5 @@
 import xml.dom.minidom
-import urllib2
+import urllib
 
 zwskey="YOUR API KEY"
 
@@ -7,7 +7,7 @@ def getaddressdata(address,city):
   escad=address.replace(' ','+')
   url='http://www.zillow.com/webservice/GetDeepSearchResults.htm?'
   url+='zws-id=%s&address=%s&citystatezip=%s' % (zwskey,escad,city)
-  doc=xml.dom.minidom.parseString(urllib2.urlopen(url).read())
+  doc=xml.dom.minidom.parseString(urllib.urlopen(url).read())
   code=doc.getElementsByTagName('code')[0].firstChild.data
   if code!='0': return None
   if 1:

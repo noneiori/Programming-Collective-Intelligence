@@ -86,9 +86,11 @@ import sys
 import os
 import time
 import datetime
-import md5, httplib
-import urllib, urllib2, time
-from StringIO import StringIO
+import http.client as httplib
+from hashlib import md5
+import urllib, time
+import urllib.request as urllib2
+from io import StringIO
 
 try:
     from elementtree.ElementTree import parse as parse_xml
@@ -168,7 +170,7 @@ class _Waiter:
         timeago = tt - self.lastcall
 
         if self.lastcall and DEBUG>2:
-            print >>sys.stderr, "Lastcall: %s seconds ago." % lastcall
+            print("Lastcall: %s seconds ago." % self.lastcall)
 
         if timeago <= self.wait:
             if DEBUG>0: print >>sys.stderr, "Waiting %s seconds." % self.wait
@@ -177,7 +179,6 @@ class _Waiter:
             self.lastcall = tt + self.wait
         else:
             self.lastcall = tt
-
 Waiter = _Waiter(DLCS_WAIT_TIME)
 
 class PyDeliciousException(Exception):
@@ -194,7 +195,7 @@ class DefaultErrorHandler(urllib2.HTTPDefaultErrorHandler):
     Handles HTTP Error, currently only 503.
     '''
     def http_error_503(self, req, fp, code, msg, headers):
-        raise urllib2.HTTPError(req, code, throttled_message, headers, fp)
+        raise urllib2.HTTPError(req, code, msg, headers, fp)
 
 
 class post(dict):
@@ -238,15 +239,15 @@ class posts(list):
 def str2uni(s):
     # type(in) str or unicode
     # type(out) unicode
-    return ("".join([unichr(ord(i)) for i in s]))
+    return ("".join([chr(ord(i)) for i in s]))
 
 def str2utf8(s):
     # type(in) str or unicode
     # type(out) str
-    return ("".join([unichr(ord(i)).encode("utf-8") for i in s]))
+    return ("".join([chr(ord(i)).encode("utf-8") for i in s]))
 
 def str2quote(s):
-    return urllib.quote_plus("".join([unichr(ord(i)).encode("utf-8") for i in s]))
+    return urllib.request.quote("".join([chr(ord(i)).encode("utf-8") for i in s]))
 
 def dict0(d):
     # Trims empty dict entries
@@ -277,21 +278,21 @@ def http_request(url, user_agent=USER_AGENT, retry=4):
         try:
             return urllib2.urlopen(request)
 
-        except urllib2.HTTPError, e: # protocol errors,
-            raise PyDeliciousException, "%s" % e
+        except urllib2.HTTPError(e): # protocol errors,
+            raise PyDeliciousException("%s" % e)
 
-        except urllib2.URLError, e:
+        except urllib2.URLError(e):
             # @xxx: Ugly check for time-out errors
 			#if len(e)>0 and 'timed out' in arg[0]:
-			print >> sys.stderr, "%s, %s tries left." % (e, tries)
-			Waiter()
-			tries = tries - 1
+            #print(sys.stderr("%s, %s tries left." % (e, tries)))
+			
+            Waiter()
+            tries = tries - 1
 			#else:
 			#	tries = None
 
     # Give up
-    raise PyDeliciousException, \
-            "Unable to retrieve data at '%s', %s" % (url, e)
+    raise PyDeliciousException("Unable to retrieve data at '%s', %s" % (url, e))
 
 def http_auth_request(url, host, user, passwd, user_agent=USER_AGENT):
     """Call an HTTP server with authorization credentials using urllib2.
@@ -330,13 +331,13 @@ def dlcs_api_request(path, params='', user='', passwd='', throttle=True):
         url = "%s/%s" % (DLCS_API, path)
 
     if DEBUG: print >>sys.stderr, "dlcs_api_request: %s" % url
-
+    e = None
     try:
         return http_auth_request(url, DLCS_API_HOST, user, passwd, USER_AGENT)
 
     # @bvb: Is this ever raised? When?
-    except DefaultErrorHandler, e:
-        print >>sys.stderr, "%s" % e
+    except DefaultErrorHandler(e):
+        print("%s" % e)
 
 def dlcs_parse_xml(data, split_tags=False):
     """Parse any del.icio.us XML document and return Python data structure.
@@ -396,10 +397,10 @@ def dlcs_parse_xml(data, split_tags=False):
 
         # Update: "time"
         #return {fmt: root.attrib}
-		return {fmt: {'time':time.strptime(root.attrib['time'], ISO_8601_DATETIME)}}
+        return {fmt: {'time':time.strptime(root.attrib['time'], ISO_8601_DATETIME)}}
 
     else:
-        raise PyDeliciousException, "Unknown XML document format '%s'" % fmt
+        raise PyDeliciousException("Unknown XML document format '%s'" % fmt)
 
 def dlcs_rss_request(tag = "", popular = 0, user = "", url = ''):
     """Handle a request for RSS
@@ -557,7 +558,7 @@ class DeliciousAPI:
                 errmsg = ""
                 if len(rs['result'])>0:
                     errmsg = rs['result'][1:]
-                raise DeliciousError, errmsg
+                raise DeliciousError(errmsg)
 
             return rs
 

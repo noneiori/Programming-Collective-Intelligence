@@ -22,6 +22,7 @@ critics={'Lisa Rose': {'Lady in the Water': 2.5, 'Snakes on a Plane': 3.5,
 from math import sqrt
 
 # Returns a distance-based similarity score for person1 and person2
+# 歐幾里德距離評價
 def sim_distance(prefs,person1,person2):
   # Get the list of shared_items
   si={}
@@ -131,7 +132,7 @@ def calculateSimilarItems(prefs,n=10):
   for item in itemPrefs:
     # Status updates for large datasets
     c+=1
-    if c%100==0: print "%d / %d" % (c,len(itemPrefs))
+    if c%100==0: print("%d / %d" % (c,len(itemPrefs)))
     # Find the most similar items to this one
     scores=topMatches(itemPrefs,item,n=n,similarity=sim_distance)
     result[item]=scores
@@ -164,16 +165,16 @@ def getRecommendedItems(prefs,itemMatch,user):
   rankings.reverse( )
   return rankings
 
-def loadMovieLens(path='/data/movielens'):
+def loadMovieLens(path='D:/Source/Programming Collective Intelligence/PCI_Code Folder/chapter2'):
   # Get movie titles
   movies={}
-  for line in open(path+'/u.item'):
+  for line in open(path+'/u.item',encoding='latin-1'):
     (id,title)=line.split('|')[0:2]
     movies[id]=title
   
   # Load data
   prefs={}
-  for line in open(path+'/u.data'):
+  for line in open(path+'/u.data',encoding='latin-1'):
     (user,movieid,rating,ts)=line.split('\t')
     prefs.setdefault(user,{})
     prefs[user][movies[movieid]]=float(rating)
